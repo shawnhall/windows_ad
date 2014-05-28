@@ -12,7 +12,7 @@
 class windows_ad (
   ### part install AD
   $install                   = 'present',
-  $installmanagementtools    = true,
+  $installmanagementtools    = false,
   $installsubfeatures        = false,
   $restart                   = false,
 
@@ -52,6 +52,13 @@ class windows_ad (
   $domaintype                = undef,          # Type of domain {Tree | Child | Forest} (New domain tree in an existing forest, child domain, or new forest)
   $sitename                  = undef,          # Site Name
 
+  ### Define Hiera hashes
+  $groups                    = undef,
+  $groups_hiera_merge        = true,
+  $users                     = undef,
+  $users_hiera_merge         = true,
+  $usersingroup              = undef,
+  $usersingroup_hiera_merge  = true,
 ) {
 
   # when present install process will be set. if already install nothing done
@@ -61,40 +68,92 @@ class windows_ad (
   # absent don't do anything right now
   validate_re($configure, '^(present|absent)$', 'valid values for configure are \'present\' or \'absent\'')
 
-  class{'windows_ad::install':
-    ensure                 => $install,
-    installmanagementtools => $installmanagementtools,
-    installsubfeatures     => $installsubfeatures,
-    restart                => $restart,
-  }
+#  class{'windows_ad::install':
+#    ensure                 => $install,
+#    installmanagementtools => $installmanagementtools,
+#    installsubfeatures     => $installsubfeatures,
+#    restart                => $restart,
+#  }
 
-  class{'windows_ad::conf_forest':
-    ensure                    => $configure,
-    domainname                => $domainname,
-    netbiosdomainname         => $netbiosdomainname,
-    domainlevel               => $domainlevel,
-    forestlevel               => $forestlevel,
-    globalcatalog             => $globalcatalog,
-    databasepath              => $databasepath,
-    logpath                   => $logpath,
-    sysvolpath                => $sysvolpath,
-    dsrmpassword              => $dsrmpassword,
-    installdns                => $installdns,
-    kernel_ver                => $kernel_ver,
-    localadminpassword        => $localadminpassword,
-    force                     => $force,
-    forceremoval              => $forceremoval,
-    uninstalldnsrole          => $uninstalldnsrole,
-    demoteoperationmasterrole => $demoteoperationmasterrole,
-  }
+#  class{'windows_ad::conf_forest':
+#    ensure                    => $configure,
+#    domainname                => $domainname,
+#    netbiosdomainname         => $netbiosdomainname,
+#    domainlevel               => $domainlevel,
+#    forestlevel               => $forestlevel,
+#    globalcatalog             => $globalcatalog,
+#    databasepath              => $databasepath,
+#    logpath                   => $logpath,
+#    sysvolpath                => $sysvolpath,
+#    dsrmpassword              => $dsrmpassword,
+#    installdns                => $installdns,
+#    kernel_ver                => $kernel_ver,
+#    localadminpassword        => $localadminpassword,
+#    force                     => $force,
+#    forceremoval              => $forceremoval,
+#    uninstalldnsrole          => $uninstalldnsrole,
+#    demoteoperationmasterrole => $demoteoperationmasterrole,
+#  }
 
-  if($install == 'present'){
-    Class['windows_ad::install'] -> Class['windows_ad::conf_forest']
-  }else{
-    if($configure == present){
-      fail('You can\'t desactivate the Role ADDS without uninstall ADDSControllerDomain first')
-    }else{
-      Class['windows_ad::conf_forest'] -> Class['windows_ad::install']
+#  if($install == 'present'){
+#    Class['windows_ad::install'] -> Class['windows_ad::conf_forest']
+#  }else{
+#    if($configure == present){
+#      fail('You can\'t desactivate the Role ADDS without uninstall ADDSControllerDomain first')
+#    }else{
+#      Class['windows_ad::conf_forest'] -> Class['windows_ad::install']
+#    }
+#  }
+
+  if type($groups_hiera_merge) == 'string' {
+    $groups_hiera_merge_real = str2bool($groups_hiera_merge)
+  } else {
+    $groups_hiera_merge_real = $groups_hiera_merge
+  }
+  validate_bool($groups_hiera_merge_real)
+
+  if $groups != undef {
+    if $groups_hiera_merge_real == true {
+      $groups_real = hiera_hash('windows_ad::groups')
+    } else {
+      $groups_real = $groups
     }
+    validate_hash($groups_real)
+    create_resources('windows_ad::group',$groups_real)
   }
+  
+  if type($users_hiera_merge) == 'string' {
+    $users_hiera_merge_real = str2bool($users_hiera_merge)
+  } else {
+    $users_hiera_merge_real = $users_hiera_merge
+  }
+  validate_bool($users_hiera_merge_real)
+
+  if $users != undef {
+    if $users_hiera_merge_real == true {
+      $users_real = hiera_hash('windows_ad::users')
+    } else {
+      $users_real = $users
+    }
+    validate_hash($users_real)
+    create_resources('windows_ad::user',$users_real)
+  }
+  
+  if type($usersingroup_hiera_merge) == 'string' {
+    $usersingroup_hiera_merge_real = str2bool($usersingroup_hiera_merge)
+  } else {
+    $usersingroup_hiera_merge_real = $usersingroup_hiera_merge
+  }
+  validate_bool($usersingroup_hiera_merge_real)
+
+  if $usersingroup != undef {
+    if $usersingroup_hiera_merge_real == true {
+      $usersingroup_real = hiera_hash('windows_ad::usersingroup')
+    } else {
+      $usersingroup_real = $usersingroup
+    }
+    validate_hash($usersingroup_real)
+    create_resources('windows_ad::groupmembers',$usersingroup_real)
+  }
+
 }

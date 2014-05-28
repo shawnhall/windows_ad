@@ -73,7 +73,8 @@ define windows_ad::user(
   $password             = '',                                 # password to set to the account. Default autogenerating
 
 # delete user
-  $confirmdeletion      = false,                # delete wihtout confirmation
+  $confirmdeletion      = true,                # delete wihtout confirmation
+  
 ){
   validate_re($ensure, '^(present|absent)$', 'valid values for ensure are \'present\' or \'absent\'')
   validate_bool($passwordneverexpires)
@@ -116,28 +117,15 @@ define windows_ad::user(
     }
     #$save2xml = template('windows_ad/user2xml.erb')
     exec { "Add User - ${accountname}":
-      command     => "add-windowsfeature -name 'rsat-ad-powershell' -includeAllSubFeature;import-module activedirectory;New-ADUser -name '${fullname}' -DisplayName '${fullname}' -GivenName '${firstname}' -SurName '${lastname}' -Samaccountname '${accountname}' -UserPrincipalName '${userprincipalname}' -Description '${description}' -PasswordNeverExpires $${passwordneverexpires} -path '${path}' -AccountPassword (ConvertTo-SecureString '${pwd}' -AsPlainText -force) -Enabled $${enabled};",
-      onlyif      => "if((dsquery.exe user -samid ${accountname}) -or ([adsi]::Exists(\"LDAP://${path}\") -eq \$false)){exit 1}",
+      command     => "import-module servermanager;add-windowsfeature -name 'rsat-ad-powershell' -includeAllSubFeature;import-module activedirectory;New-ADUser -name '${fullname}' -DisplayName '${fullname}' -GivenName '${firstname}' -SurName '${lastname}' -Samaccountname '${accountname}' -UserPrincipalName '${userprincipalname}' -Description '${description}' -PasswordNeverExpires $${passwordneverexpires} -path '${path}' -AccountPassword (ConvertTo-SecureString '${pwd}' -AsPlainText -force) -Enabled $${enabled};",
+      onlyif      => "\$oustring = ${path} -replace '\"','';Write-Host \$oustring;if((dsquery.exe user -samid ${accountname}) -or ([adsi]::Exists(\"LDAP://\$oustring\") -eq \$false)){exit 1}",
       provider    => powershell,
-      before      => Exec["Add to XML - ${accountname}"],
     }
-    exec { "Add to XML - ${accountname}":
-      command     => "[xml]\$xml = New-Object system.Xml.XmlDocument;[xml]\$xml = Get-Content 'C:\\users.xml';\$subel = \$xml.CreateElement('user');(\$xml.configuration.GetElementsByTagName('users')).AppendChild(\$subel);\$name = \$xml.CreateAttribute('name');\$name.Value = '${accountname}';\$password = \$xml.CreateAttribute('password');\$password.Value = '${pwd}';\$subel.Attributes.Append(\$name);\$subel.Attributes.Append(\$password);\$xml.save('C:\\users.xml');",
-      provider    => powershell,
-	  onlyif      => "[xml]\$xml = New-Object system.Xml.XmlDocument;[xml]\$xml = Get-Content 'C:\\users.xml';\$exist=\$false;foreach(\$user in \$xml.configuration.users.user){if(\$user.name -eq '${accountname}'){\$exist=\$true}}if(\$exist -eq \$True){exit 1}",
-    }
-
   }elsif($ensure == 'absent'){
     exec { "Remove User - ${accountname}":
       command     => "import-module activedirectory;Remove-ADUser -identity ${accountname} -Confirm:$${confirmdeletion}",
       onlyif      => "if(dsquery.exe user -samid ${accountname} ){return \$true}else{exit 1}",
       provider    => powershell,
-      before      => Exec["Remove to XML - ${accountname}"],
-    }
-    exec { "Remove to XML - ${accountname}":
-      command     => "[xml]\$xml = New-Object system.Xml.XmlDocument;[xml]\$xml = Get-Content 'C:\\users.xml';foreach(\$user in \$xml.configuration.users.user){if(\$user.name -eq '${accountname}'){\$user.ParentNode.RemoveChild(\$user);\$xml.save('C:\\users.xml');}}",
-      provider    => powershell,
-      onlyif      => "[xml]\$xml = New-Object system.Xml.XmlDocument;[xml]\$xml = Get-Content 'C:\\users.xml';\$exist=\$false;foreach(\$user in \$xml.configuration.users.user){if(\$user.name -eq '${accountname}'){\$exist=\$true}}if(\$exist -eq \$False){exit 1}",
     }
   }
 }
