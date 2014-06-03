@@ -7,7 +7,7 @@ This is the windows_ad puppet module.
 Inspired from [opentable/windows_feature](https://forge.puppetlabs.com/opentable/windows_feature) module and from [martezr/windows_domain_controller](https://forge.puppetlabs.com/martezr/windows_domain_controller) for the installation and configuration of a windows domain
 
 This module have two main roles : 
-- Install & configure AD
+~~- Install & configure AD~~
 - Manage Users/OU/Groups in your Active Directory
 
 
@@ -20,7 +20,10 @@ Moreover, it allows you to create/Remove User in Active Directory, but also perm
 This module have been tested on Windows Server 2012 r2, should work on Windows Server since 2008 R2.
 
 ##Last Fix/Update
-V 0.0.6 :
+V 0.0.7 :
+ - Added functionality so that the code can pull data from hiera
+ - Added chaining to enforce execution ordering
+ - Fixed some Powershell scripts that were causing errors
  - Create/Remove a Group in Active Directory
  - Create/Remove members inside a existing Group in Active Directory
  - Add possibility to enter a password for user
@@ -58,6 +61,7 @@ Depends on the following modules:
 ##Usage
 
 Class: windows_ad
+We have disabled the forest creation functionality for our purposes.
 ```
 Example - Create a new forest
 	class {'windows_ad':
