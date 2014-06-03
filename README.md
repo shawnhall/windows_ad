@@ -60,8 +60,8 @@ Depends on the following modules:
 
 ##Usage
 
-Class: windows_ad
-We have disabled the forest creation functionality for our purposes.
+Class: windows_ad  
+*NOTE: The forest creation functionality has been disabled for our purposes.*
 ```
 Example - Create a new forest
 	class {'windows_ad':
