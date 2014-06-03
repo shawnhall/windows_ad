@@ -156,5 +156,5 @@ class windows_ad (
     create_resources('windows_ad::groupmembers',$usersingroup_real)
   }
 
-  Windows_ad::Groups <| |> -> Windows_ad::Users  <| |> -> Windows_ad::Groupmembers <| |>
+  Windows_ad::Group <| |> -> Windows_ad::User  <| |> -> Windows_ad::Groupmembers <| |>
 }
