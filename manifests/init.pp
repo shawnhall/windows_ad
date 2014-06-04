@@ -15,12 +15,14 @@ class windows_ad (
   $installmanagementtools    = false,
   $installsubfeatures        = false,
   $restart                   = false,
+  $installflag               = false,                # Flag to bypass the install of AD if desired
 
   ### Part Configure AD - Global
   $configure                 = 'present',
   $domain                    = 'forest',
   $domainname                = undef,                # FQDN
   $netbiosdomainname         = undef,                # FQDN
+  $configureflag             = false,                # Flag to bypass the configuration of AD if desired
 
   #level AD
   $domainlevel               = '6',                   # Domain level {4 - Server 2008 R2 | 5 - Server 2012 | 6 - Server 2012 R2}
@@ -68,42 +70,44 @@ class windows_ad (
   # absent don't do anything right now
   validate_re($configure, '^(present|absent)$', 'valid values for configure are \'present\' or \'absent\'')
 
-#  class{'windows_ad::install':
-#    ensure                 => $install,
-#    installmanagementtools => $installmanagementtools,
-#    installsubfeatures     => $installsubfeatures,
-#    restart                => $restart,
-#  }
+  class{'windows_ad::install':
+    ensure                 => $install,
+    installmanagementtools => $installmanagementtools,
+    installsubfeatures     => $installsubfeatures,
+    restart                => $restart,
+    installflag            => $installflag,
+  }
 
-#  class{'windows_ad::conf_forest':
-#    ensure                    => $configure,
-#    domainname                => $domainname,
-#    netbiosdomainname         => $netbiosdomainname,
-#    domainlevel               => $domainlevel,
-#    forestlevel               => $forestlevel,
-#    globalcatalog             => $globalcatalog,
-#    databasepath              => $databasepath,
-#    logpath                   => $logpath,
-#    sysvolpath                => $sysvolpath,
-#    dsrmpassword              => $dsrmpassword,
-#    installdns                => $installdns,
-#    kernel_ver                => $kernel_ver,
-#    localadminpassword        => $localadminpassword,
-#    force                     => $force,
-#    forceremoval              => $forceremoval,
-#    uninstalldnsrole          => $uninstalldnsrole,
-#    demoteoperationmasterrole => $demoteoperationmasterrole,
-#  }
+  class{'windows_ad::conf_forest':
+    ensure                    => $configure,
+    domainname                => $domainname,
+    netbiosdomainname         => $netbiosdomainname,
+    domainlevel               => $domainlevel,
+    forestlevel               => $forestlevel,
+    globalcatalog             => $globalcatalog,
+    databasepath              => $databasepath,
+    logpath                   => $logpath,
+    sysvolpath                => $sysvolpath,
+    dsrmpassword              => $dsrmpassword,
+    installdns                => $installdns,
+    kernel_ver                => $kernel_ver,
+    localadminpassword        => $localadminpassword,
+    force                     => $force,
+    forceremoval              => $forceremoval,
+    uninstalldnsrole          => $uninstalldnsrole,
+    demoteoperationmasterrole => $demoteoperationmasterrole,
+    configureflag             => $configureflag,
+  }
 
-#  if($install == 'present'){
-#    Class['windows_ad::install'] -> Class['windows_ad::conf_forest']
-#  }else{
-#    if($configure == present){
-#      fail('You can\'t desactivate the Role ADDS without uninstall ADDSControllerDomain first')
-#    }else{
-#      Class['windows_ad::conf_forest'] -> Class['windows_ad::install']
-#    }
-#  }
+  if($install == 'present'){
+    Class['windows_ad::install'] -> Class['windows_ad::conf_forest']
+  }else{
+    if($configure == present){
+      fail('You can\'t desactivate the Role ADDS without uninstall ADDSControllerDomain first')
+    }else{
+      Class['windows_ad::conf_forest'] -> Class['windows_ad::install']
+    }
+  }
 
   if type($groups_hiera_merge) == 'string' {
     $groups_hiera_merge_real = str2bool($groups_hiera_merge)

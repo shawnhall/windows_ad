@@ -71,6 +71,7 @@ define windows_ad::user(
   $passwordlength       = 9,                                  # password length
   $enabled              = true,                               # enable account after creation (true/false)
   $password             = '',                                 # password to set to the account. Default autogenerating
+  $writetoxmlflag       = false,                              # Flag that makes writing to the users.xml optional
 
 # delete user
   $confirmdeletion      = true,                # delete wihtout confirmation
@@ -79,6 +80,7 @@ define windows_ad::user(
   validate_re($ensure, '^(present|absent)$', 'valid values for ensure are \'present\' or \'absent\'')
   validate_bool($passwordneverexpires)
   validate_bool($enabled)
+  validate_bool($writetoxmlflag)
   
   $modify = false     # will be implement later for modify password. not used for now
 
@@ -121,11 +123,27 @@ define windows_ad::user(
       onlyif      => "\$oustring = ${path} -replace '\"','';Write-Host \$oustring;if((dsquery.exe user -samid ${accountname}) -or ([adsi]::Exists(\"LDAP://\$oustring\") -eq \$false)){exit 1}",
       provider    => powershell,
     }
+    if ($writetoxmlflag == true){
+      exec { "Add to XML - ${accountname}":
+        command => "[xml]\$xml = New-Object system.Xml.XmlDocument;[xml]\$xml = Get-Content '${xmlpath}';\$subel = \$xml.CreateElement('user');(\$xml.configuration.GetElementsByTagName('users')).AppendChild(\$subel);\$name = \$xml.CreateAttribute('name');\$name.Value = '${accountname}';\$password = \$xml.CreateAttribute('password');\$password.Value = '${pwd}';\$subel.Attributes.Append(\$name);\$subel.Attributes.Append(\$password);\$xml.save('${xmlpath}');",
+        provider => powershell,
+        onlyif => "[xml]\$xml = New-Object system.Xml.XmlDocument;[xml]\$xml = Get-Content '${xmlpath}';\$exist=\$false;foreach(\$user in \$xml.configuration.users.user){if(\$user.name -eq '${accountname}'){\$exist=\$true}}if(\$exist -eq \$True){exit 1}",
+        require => Exec["Add User - ${accountname}"],
+      }
+    }
   }elsif($ensure == 'absent'){
     exec { "Remove User - ${accountname}":
       command     => "import-module activedirectory;Remove-ADUser -identity ${accountname} -Confirm:$${confirmdeletion}",
       onlyif      => "if(dsquery.exe user -samid ${accountname} ){return \$true}else{exit 1}",
       provider    => powershell,
+    }
+    if ($writetoxmlflag == true){    
+      exec { "Remove to XML - ${accountname}":
+        command => "[xml]\$xml = New-Object system.Xml.XmlDocument;[xml]\$xml = Get-Content '${xmlpath}';foreach(\$user in \$xml.configuration.users.user){if(\$user.name -eq '${accountname}'){\$user.ParentNode.RemoveChild(\$user);\$xml.save('${xmlpath}');}}",
+        provider => powershell,
+        onlyif => "[xml]\$xml = New-Object system.Xml.XmlDocument;[xml]\$xml = Get-Content '${xmlpath}';\$exist=\$false;foreach(\$user in \$xml.configuration.users.user){if(\$user.name -eq '${accountname}'){\$exist=\$true}}if(\$exist -eq \$False){exit 1}",
+        require => Exec["Remove User - ${accountname}"],
+      }
     }
   }
 }

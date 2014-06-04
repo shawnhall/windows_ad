@@ -7,7 +7,7 @@ This is the windows_ad puppet module.
 Inspired from [opentable/windows_feature](https://forge.puppetlabs.com/opentable/windows_feature) module and from [martezr/windows_domain_controller](https://forge.puppetlabs.com/martezr/windows_domain_controller) for the installation and configuration of a windows domain
 
 This module have two main roles : 
-~~- Install & configure AD~~
+- Install & configure AD
 - Manage Users/OU/Groups in your Active Directory
 
 
@@ -24,6 +24,8 @@ V 0.0.7 :
  - Added functionality so that the code can pull data from hiera
  - Added chaining to enforce execution ordering
  - Fixed some Powershell scripts that were causing errors
+ - Added some conditional flags to make installing AD and configuring the forest optional
+ - Added conditional flag to make writing to the xml file optional
  - Create/Remove a Group in Active Directory
  - Create/Remove members inside a existing Group in Active Directory
  - Add possibility to enter a password for user
@@ -61,7 +63,6 @@ Depends on the following modules:
 ##Usage
 
 Class: windows_ad  
-**NOTE: The forest creation functionality has been disabled for our purposes.**
 ```
 Example - Create a new forest
 	class {'windows_ad':
